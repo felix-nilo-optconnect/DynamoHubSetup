@@ -1,5 +1,5 @@
 -- Complete Database Setup for DynamoHub
--- Based on VerizonIntegration/docs/DatabaseSetup.md
+-- Based DatabaseSetup.md
 
 -- Create database
 CREATE DATABASE IF NOT EXISTS lola_dev;

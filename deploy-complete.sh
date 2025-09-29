@@ -30,17 +30,21 @@ source "$SCRIPT_DIR/scripts/check-prerequisites.sh"
 echo -e "${YELLOW}Step 2: Deploying Infrastructure${NC}"
 source "$SCRIPT_DIR/scripts/deploy-infrastructure.sh"
 
-# Step 3: Database Setup
-echo -e "${YELLOW}Step 3: Setting up Database${NC}"
-source "$SCRIPT_DIR/scripts/setup-database.sh"
-
-# Step 4: Manual Database Setup Instructions
-echo -e "${YELLOW}Step 4: Database Setup Instructions${NC}"
-echo -e "${BLUE}Next steps:${NC}"
-echo "1. Connect to EC2 via Session Manager"
-echo "2. Run: mysql -h dynamo-hub-dev.cxekm8qgy6vr.us-east-2.rds.amazonaws.com -u dynamohub -p123456789 < complete_database_setup.sql"
-echo "3. Deploy DynamoHub separately: cd ../DynamoHub && make deploy"
-echo "4. Deploy integrations separately"
+# Step 3: Next Steps
+echo -e "${YELLOW}Step 3: Next Steps${NC}"
+echo -e "${GREEN}Infrastructure deployed successfully!${NC}"
+echo ""
+echo -e "${BLUE}Manual steps required:${NC}"
+echo "1. Configure database (see README.md for detailed steps)"
+echo "2. Deploy DynamoHub: cd ../DynamoHub && ENV=dev make deploy"
+echo "3. Deploy integrations as needed"
+echo ""
+echo -e "${BLUE}Database connection:${NC}"
+echo "Host: dynamo-hub-dev.cxekm8qgy6vr.us-east-2.rds.amazonaws.com"
+echo "User: dynamohub"
+echo "Password: 123456789"
+echo ""
+echo "See README.md for complete instructions."
 
 echo -e "${GREEN}Deployment completed successfully!${NC}"
 echo ""
