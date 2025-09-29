@@ -1,0 +1,139 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Simple RDS MySQL Database'
+
+Parameters:
+  Environment:
+    Type: String
+    Default: dev
+
+Resources:
+  # Bastion Security Group
+  BastionSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Bastion Security Group
+      VpcId:
+        Fn::ImportValue: !Sub 'DynamoHub-${Environment}-VPC'
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+      Tags:
+        - Key: Name
+          Value: !Sub 'dynamo-hub-${Environment}-bastion-sg'
+
+  # DB Subnet Group using imported subnets
+  DBSubnetGroup:
+    Type: AWS::RDS::DBSubnetGroup
+    Properties:
+      DBSubnetGroupDescription: DB Subnet Group
+      SubnetIds:
+        - Fn::ImportValue: !Sub 'DynamoHub-${Environment}-PrivateSubnet1'
+        - Fn::ImportValue: !Sub 'DynamoHub-${Environment}-PrivateSubnet2'
+      Tags:
+        - Key: Name
+          Value: !Sub 'dynamo-hub-${Environment}-db-subnet-group'
+
+  # RDS Security Group
+  RDSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: RDS Security Group
+      VpcId:
+        Fn::ImportValue: !Sub 'DynamoHub-${Environment}-VPC'
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 3306
+          ToPort: 3306
+          SourceSecurityGroupId:
+            Fn::ImportValue: !Sub 'DynamoHub-${Environment}-LambdaSG'
+        - IpProtocol: tcp
+          FromPort: 3306
+          ToPort: 3306
+          SourceSecurityGroupId: !Ref BastionSG
+      Tags:
+        - Key: Name
+          Value: !Sub 'dynamo-hub-${Environment}-rds-sg'
+
+  # RDS Database
+  Database:
+    Type: AWS::RDS::DBInstance
+    Properties:
+      DBInstanceIdentifier: !Sub 'dynamo-hub-${Environment}'
+      DBInstanceClass: db.t3.micro
+      Engine: mysql
+      EngineVersion: '8.0.43'
+      AllocatedStorage: 20
+      MasterUsername: dynamohub
+      MasterUserPassword: '123456789'
+      DBName: lola_dev
+      DBSubnetGroupName: !Ref DBSubnetGroup
+      VPCSecurityGroups:
+        - !Ref RDSG
+      PubliclyAccessible: false
+      BackupRetentionPeriod: 7
+      StorageEncrypted: true
+      Tags:
+        - Key: Name
+          Value: !Sub 'dynamo-hub-${Environment}-database'
+
+  # Bastion Host with Session Manager
+  BastionHost:
+    Type: AWS::EC2::Instance
+    Properties:
+      ImageId: ami-01810692271ee44a4
+      InstanceType: t3.micro
+      SecurityGroupIds:
+        - !Ref BastionSG
+      SubnetId:
+        Fn::ImportValue: !Sub 'DynamoHub-${Environment}-PublicSubnet1'
+      IamInstanceProfile: !Ref BastionInstanceProfile
+      UserData:
+        Fn::Base64: !Sub |
+          #!/bin/bash
+          yum update -y
+          yum install -y mysql
+      Tags:
+        - Key: Name
+          Value: !Sub 'dynamo-hub-${Environment}-bastion'
+
+  # IAM Role for Session Manager
+  BastionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ec2.amazonaws.com
+            Action: sts:AssumeRole
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+      Tags:
+        - Key: Name
+          Value: !Sub 'dynamo-hub-${Environment}-bastion-role'
+
+  BastionInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - !Ref BastionRole
+
+Outputs:
+  DatabaseEndpoint:
+    Description: RDS Database Endpoint
+    Value: !GetAtt Database.Endpoint.Address
+    Export:
+      Name: !Sub 'DynamoHub-${Environment}-DatabaseEndpoint'
+  
+  DatabaseUsername:
+    Description: Database Username
+    Value: dynamohub
+    Export:
+      Name: !Sub 'DynamoHub-${Environment}-DatabaseUsername'
+  
+  BastionInstanceId:
+    Description: Bastion Host Instance ID
+    Value: !Ref BastionHost
