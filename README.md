@@ -39,6 +39,13 @@ aws ssm start-session --target $INSTANCE_ID --region <region>
 ```
 
 Inside EC2, connect to MySQL and run the SQL commands from `complete_database_setup.sql`:
+```bash
+# Get database host
+DB_HOST=$(aws cloudformation describe-stacks --stack-name dynamo-hub-simple-rds-dev --region us-east-2 --query 'Stacks[0].Outputs[?OutputKey==`DatabaseEndpoint`].OutputValue' --output text)
+
+# Connect to MySQL
+mysql -h $DB_HOST -u dynamohub -p123456789
+```
 
 ### 3. Create Database Secret
 
@@ -51,7 +58,7 @@ aws secretsmanager create-secret \
     --secret-string '{
         "username": "dynamohub",
         "password": "123456789",
-        "host": "dynamo-hub-dev.cxekm8qgy6vr.us-east-2.rds.amazonaws.com",
+        "host": "<DB_HOST_FROM_CLOUDFORMATION>",
         "schema": "lola_dev",
         "connector": "mysql+mysqlconnector"
     }' \

@@ -39,8 +39,11 @@ echo "1. Configure database (see README.md for detailed steps)"
 echo "2. Deploy DynamoHub: cd ../DynamoHub && ENV=dev make deploy"
 echo "3. Deploy integrations as needed"
 echo ""
+# Get database endpoint dynamically
+DB_HOST=$(aws cloudformation describe-stacks --stack-name dynamo-hub-simple-rds-dev --region us-east-2 --query 'Stacks[0].Outputs[?OutputKey==`DatabaseEndpoint`].OutputValue' --output text 2>/dev/null || echo "dynamo-hub-dev.cxekm8qgy6vr.us-east-2.rds.amazonaws.com")
+
 echo -e "${BLUE}Database connection:${NC}"
-echo "Host: dynamo-hub-dev.cxekm8qgy6vr.us-east-2.rds.amazonaws.com"
+echo "Host: $DB_HOST"
 echo "User: dynamohub"
 echo "Password: 123456789"
 echo ""
